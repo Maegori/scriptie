@@ -1,2 +1,12 @@
 .venv/*
 midi_output/*
+data/*
+deepj/DeepJ/midi_output/*
+deepj/DeepJ/archives/v1/*
+lstm/music_research/logs/music_research/*
+lstm/music_research/logs_music200/*
+lstm/music_research/Pop_Music_Midi/*
+vae/VAE/data/*
+vae/VAE/data_temp/*
+vae/VAE/models/*
+vae/VAE/output/*
