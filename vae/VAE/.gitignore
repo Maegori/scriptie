@@ -1,0 +1,7 @@
+data/*
+logs/*
+MidiFiles/*
+models/*
+output/*
+data_temp/*
+app/*
