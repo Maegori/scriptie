@@ -6,7 +6,7 @@ essentia.log.warningActive = False
 essentia.log.infoActive = False
 
 import essentia.standard as es
-import matplotlib.pyplot as plt
+import vamp
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
@@ -120,27 +120,49 @@ class Preprocessor():
         return 0 if len(segments) == 2 else int(segments[1])
 
 
-    def audio_to_midi(self, input_fn, output_fn, smooth=0.25, minduration=0.1):
+    def audio_to_midi(self, input_fn, output_fn, smooth=0.2, minduration=0.1):
+        # fs = 44100
+        # hop = 128
+
+        # audio = es.EqloudLoader(filename=input_fn, sampleRate=fs)()
+        # start = self.segment(audio)
+        # audio = audio[start:]
+        # pitch_values, _ = self.pitch_extractor(audio)
+
+        # try:
+        #     bpm = self.rythm_extractor(audio)[0]
+        # except:
+        #     print(f"Skipping {input_fn} because of rythm extractor")
+        #     return
+
+        # pitch_values = np.insert(pitch_values, 0, values=[0]*8)
+
+        # midi_pitch = self.hz2midi(pitch_values)
+        # notes = self.midi_to_notes(midi_pitch, fs, hop, smooth, minduration)
+
+        # self.save_midi(output_fn, notes, bpm)
         fs = 44100
         hop = 128
-
-        audio = es.EqloudLoader(filename=input_fn, sampleRate=fs)()
+        audio = es.MonoLoader(filename=input_fn, downmix='mix', sampleRate=44100)()
         start = self.segment(audio)
         audio = audio[start:]
-        pitch_values, _ = self.pitch_extractor(audio)
+        # pitch_values,_ = self.pitch_extractor(audio)
+        params = {"minfqr": 100.0, "maxfqr": 800.0, "voicing": 0.2, "minpeaksalience": 0.0}
+        data = vamp.collect(audio, fs, "mtg-melodia:melodia", parameters=params)
+        hop, pitch_values = data['vector']
+        timestamps = 8 * 128/44100.0 + np.arange(len(pitch_values)) * (128 / 44100.0)
+        pitch_values = np.array(pitch_values)
 
-        try:
-            bpm = self.rythm_extractor(audio)[0]
-        except:
-            print(f"Skipping {input_fn} because of rythm extractor")
-            return
+
+        bpm = self.rythm_extractor(audio)[0]
 
         pitch_values = np.insert(pitch_values, 0, values=[0]*8)
 
         midi_pitch = self.hz2midi(pitch_values)
-        notes = self.midi_to_notes(midi_pitch, fs, hop, smooth, minduration)
+        notes = self.midi_to_notes(midi_pitch, fs, 128, smooth, minduration)
 
         self.save_midi(output_fn, notes, bpm)
+
 
 if __name__ == "__main__":
     # path = "data/2020/San Marino_Freaky!_Senhit.mp3"
@@ -148,24 +170,21 @@ if __name__ == "__main__":
 
     proc = Preprocessor()
 
-    for year in range(2011, 2021):
-        print(year)
-        input_fns = os.listdir("data/"+str(year))
-        output_fns = [name.split(".")[0] + ".mid" for name in input_fns]
-        try:
-            os.mkdir("midi_output/"+str(year))
-        except FileExistsError:
-            pass
-        for idx in range(len(input_fns)):
-            proc = Preprocessor()
-            proc.audio_to_midi("data/"+str(year)+"/"+input_fns[idx], "midi_output/"+str(year)+"/"+output_fns[idx])
+    # for year in range(2011, 2021):
+    #     print(year)
+    #     input_fns = os.listdir("data/"+str(year))
+    #     output_fns = [name.split(".")[0] + ".mid" for name in input_fns]
+    #     try:
+    #         os.mkdir("midi_output/"+str(year))
+    #     except FileExistsError:
+    #         pass
+    #     for idx in range(len(input_fns)):
+    #         proc = Preprocessor()
+    #         proc.audio_to_midi("data/"+str(year)+"/"+input_fns[idx], "midi_output/"+str(year)+"/"+output_fns[idx])
     
     # for idx in range(len(input_fns)):
     #     print(input_fns[idx])
     #     audio_to_midi("data/2020/" + input_fns[idx], "midi_output/" + output_fns[idx])
-
-
-    # proc.audio_to_midi("/home/lex/Documents/scriptie/data/2020/Iceland_Think About Things_Daði & Gagnamagnið.mp3", "test.mid")
 
     # for idx in range(len(input_fns)):
     #     print(input_fns[idx])
@@ -186,6 +205,11 @@ if __name__ == "__main__":
     # # %%
     # fig = px.line(x=pitch_times, y=pitch_values)
     # fig.show()
+    filename = "data/2020/Iceland_Think About Things_Dai & Gagnamagni.mp3"
+    output = "test.mid"
+
+    proc.audio_to_midi(filename, output)
+
 
 # # f, axarr = plt.subplots(2, sharex=True)
 # # axarr[0].plot(pitch_times, pitch_values)
